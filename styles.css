@@ -325,7 +325,7 @@ footer {
 
     button {
         padding: 6px 10px;
-        font-size: 0.75rem;
+        font-size: 9.75rem;
     }
 
     .light {
@@ -360,8 +360,8 @@ footer {
 #mainPageTitle {
     text-align: center;
     width: 100%;
-    margin: 0px 0;
-    padding: 0 9px;
+    margin: 5px 0;
+    padding: 0 5px;
 }
 
 
