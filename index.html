@@ -4,121 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Озвучивание текста</title>
+    <link rel="icon" href="icon.png">
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             max-width: 600px;
-            margin: 0 auto;
+            margin: 20px auto;
             padding: 20px;
-            background: #f8f9fa;
-            color: #212529;
+            background: #f4f4f9;
         }
-
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
         textarea {
             width: 100%;
             height: 200px;
-            margin: 15px 0;
-            padding: 15px;
-            border: 2px solid #ced4da;
-            border-radius: 8px;
-            font-size: 18px;
-            transition: all 0.3s;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
-
-        textarea:focus {
-            border-color: #0d6efd;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
-        }
-
-        .button-container {
-            margin: 20px 0;
-            display: flex;
-            gap: 15px;
-        }
-
         button {
-            padding: 16px 32px;
-            background: linear-gradient(135deg, #0d6efd, #6610f2);
+            padding: 10px 20px;
+            background: #2196F3;
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 18px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: all 0.3s;
+            margin: 5px;
         }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        }
-
         #fileControls {
-            margin: 30px 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        #fileName {
-            padding: 12px 15px;
-            border: 2px solid #ced4da;
-            border-radius: 8px;
-            font-size: 16px;
-            width: 100%;
-            max-width: 300px;
-        }
-
-        #savedFiles {
-            padding: 8px 12px;
-            border: 2px solid #ced4da;
-            border-radius: 8px;
-            font-size: 16px;
-            width: 100%;
-            max-width: 300px;
-        }
-
-        #progress {
             margin: 20px 0;
-            font-size: 16px;
-            color: #28a745;
         }
-
         #status {
-            color: #dc3545;
-            margin-top: 10px;
+            color: red;
+            margin: 10px 0;
         }
-
-        @media (max-width: 600px) {
-            button {
-                min-width: 100%;
-                margin: 10px 0;
-            }
+        #progress {
+            color: green;
+            margin: 10px 0;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>Озвучивание текста</h1>
-
-    <textarea id="textToSpeak" placeholder="Введите текст здесь..."></textarea>
-
-    <div id="fileControls">
-        <input type="text" id="fileName" placeholder="Название файла" style="flex: 1;">
-        <button onclick="saveText()" style="flex: 1;">💾 Сохранить</button>
-        <select id="savedFiles" style="flex: 1;"></select>
-        <div style="display: flex; gap: 15px;">
-            <button onclick="loadText()" style="flex: 1;">📥 Загрузить</button>
-            <button onclick="deleteText()" style="flex: 1;">🗑️ Удалить</button>
+    <div class="container">
+        <h2>Озвучивание текста</h2>
+        
+        <textarea id="textToSpeak" placeholder="Текст до 100 000 символов"></textarea>
+        
+        <div id="fileControls">
+            <input type="text" id="fileName" placeholder="Название файла" style="width: 200px;">
+            <button onclick="saveText()">💾 Сохранить</button>
+            <select id="savedFiles" style="width: 200px;"></select>
+            <button onclick="loadText()">📥 Загрузить</button>
+            <button onclick="deleteText()">🗑️ Удалить</button>
         </div>
+        
+        <div>
+            <button onclick="startSpeaking()">🔊 Озвучить</button>
+            <button onclick="stopSpeaking()" disabled>⏹️ Остановить</button>
+        </div>
+        
+        <div id="status"></div>
+        <div id="progress"></div>
     </div>
-
-    <div class="button-container">
-        <button onclick="startSpeaking()">🔊 Озвучить</button>
-        <button onclick="stopSpeaking()" disabled>⏹️ Остановить</button>
-    </div>
-
-    <div id="progress"></div>
-    <div id="status"></div>
 
     <script>
         let synthesisQueue = [];
@@ -126,32 +79,33 @@
         let totalChunks = 0;
         const storageKey = 'textToSpeechStorage';
 
-        // Разбиение текста на части
-        function splitText(text, chunkSize = 3000) {
-            const regex = /([^\n]*)\n?/g; // Разделяем по переводу строки
-            let match;
-            const chunks = [];
-            
-            while ((match = regex.exec(text)) !== null) {
-                let line = match[1];
-                
-                while (line.length > chunkSize) {
-                    const splitIndex = line.lastIndexOf(' ', chunkSize);
-                    chunks.push(line.slice(0, splitIndex));
-                    line = line.slice(splitIndex + 1);
-                }
-                
-                chunks.push(line);
-            }
-            
-            return chunks;
+        // Разбиение текста
+        function splitText(text, chunkSize = 2000) {
+            const regex = /.{1,2000}/g;
+            return text.match(regex) || [];
         }
 
         // Проверка голосов
         function checkVoices() {
             const voices = speechSynthesis.getVoices();
-            const ruVoice = voices.find(v => v.lang.includes('ru'));
-            return !!ruVoice;
+            const ruVoice = voices.find(v => 
+                v.lang === 'ru' || v.lang === 'ru-RU' || v.lang.includes('ru')
+            );
+            
+            const status = document.getElementById('status');
+            
+            if (!ruVoice) {
+                status.innerHTML = `
+                    ⚠️ Русский голос не найден. 
+                    <ol>
+                        <li>В Chrome: введите в адресную строку <code>chrome://settings/content/speech</code></li>
+                        <li>В Android: Настройки → Язык и вход → Добавьте русский язык</li>
+                    </ol>
+                `;
+                status.style.display = 'block';
+            } else {
+                status.style.display = 'none';
+            }
         }
 
         // Сохранение
@@ -203,7 +157,7 @@
             alert('Файл удалён!');
         }
 
-        // Обновление списка файлов
+        // Обновление файлов
         function updateSavedFiles() {
             const select = document.getElementById('savedFiles');
             select.innerHTML = '';
@@ -222,12 +176,13 @@
             const text = document.getElementById('textToSpeak').value.trim();
             
             if (!text) {
-                alert('Введите текст');
+                alert('Введите текст!');
                 return;
             }
 
             if (text.length > 100000) {
-                if (!confirm('Текст превышает 100 000 символов. Это может занять много времени. Продолжить?')) return;
+                alert('Максимум 100 000 символов!');
+                return;
             }
 
             if (!speechSynthesis) {
@@ -235,8 +190,10 @@
                 return;
             }
 
-            if (!checkVoices()) {
-                alert('Установите русский голос в Chrome: chrome://settings/content/speech');
+            checkVoices();
+            const hasVoice = speechSynthesis.getVoices().some(v => v.lang.includes('ru'));
+            if (!hasVoice) {
+                alert('Установите русский голос!');
                 return;
             }
 
@@ -249,7 +206,7 @@
             speakNext();
         }
 
-        // Проигрывание очереди
+        // Проигрывание
         function speakNext() {
             if (currentChunk >= totalChunks) {
                 stopSpeaking();
@@ -266,7 +223,7 @@
             };
             
             utterance.onerror = (e) => {
-                alert('Ошибка воспроизведения');
+                alert('Ошибка: ' + e.error);
                 stopSpeaking();
             };
             
@@ -282,7 +239,7 @@
             document.getElementById('progress').textContent = '';
         }
 
-        // Обновление прогресса
+        // Прогресс
         function updateProgress() {
             const percent = ((currentChunk / totalChunks) * 100).toFixed(0);
             document.getElementById('progress').textContent = 
