@@ -2,166 +2,137 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>TextVoice</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="icon-192x192.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Озвучивание текста</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Arial', sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
             background: #f8f9fa;
             color: #212529;
         }
-        
-        .container {
-            padding: 20px;
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-        }
-        
-        .header {
-            text-align: center;
-            padding: 20px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
+
         textarea {
             width: 100%;
             height: 200px;
             margin: 15px 0;
-            padding: 12px;
+            padding: 15px;
             border: 2px solid #ced4da;
             border-radius: 8px;
-            resize: none;
-            font-size: 16px;
-        }
-        
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-        }
-        
-        button {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #2196F3, #1976D2);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
+            font-size: 18px;
             transition: all 0.3s;
         }
-        
-        button:hover {
-            transform: scale(1.03);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+
+        textarea:focus {
+            border-color: #0d6efd;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
         }
-        
-        .file-controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+
+        .button-container {
             margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
         }
-        
+
+        button {
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #0d6efd, #6610f2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 150px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        #fileControls {
+            margin: 30px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
         #fileName {
-            padding: 12px;
-            width: 100%;
+            padding: 12px 15px;
             border: 2px solid #ced4da;
             border-radius: 8px;
             font-size: 16px;
+            width: 100%;
+            max-width: 300px;
         }
-        
+
         #savedFiles {
-            padding: 8px;
-            width: 100%;
+            padding: 8px 12px;
             border: 2px solid #ced4da;
             border-radius: 8px;
             font-size: 16px;
+            width: 100%;
+            max-width: 300px;
         }
-        
-        #progress {
-            margin: 15px 0;
-            font-size: 14px;
-            color: #28a745;
-        }
-        
-        #voiceStatus {
+
+        #status {
+            margin: 20px 0;
+            font-size: 16px;
             color: #dc3545;
-            font-style: italic;
-            margin: 10px 0;
         }
-        
-        .footer {
-            text-align: center;
-            padding: 15px;
-            border-top: 1px solid #e9ecef;
-            font-size: 14px;
-            color: #6c757d;
+
+        @media (max-width: 600px) {
+            button {
+                min-width: 100%;
+                margin: 10px 0;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>TextVoice</h1>
-            <small>Озвучивание текста</small>
-        </div>
-        
-        <textarea id="textToSpeak" placeholder="Введите текст здесь..."></textarea>
-        
-        <div class="file-controls">
-            <div>
-                <label>Название файла:</label>
-                <input type="text" id="fileName" placeholder="Название">
-            </div>
-            <div class="button-group">
-                <button onclick="saveText()">💾 Сохранить</button>
-                <button onclick="loadText()">📥 Загрузить</button>
-                <button onclick="deleteText()">🗑️ Удалить</button>
-            </div>
-        </div>
-        
-        <div class="button-group">
-            <button onclick="startSpeaking()">🔊 Озвучить</button>
-            <button onclick="stopSpeaking()" disabled>⏹️ Остановить</button>
-        </div>
-        
-        <div id="progress"></div>
-        <div id="voiceStatus"></div>
-        <div class="footer">
-            &copy; 2023 TextVoice<br>
-            Установите как приложение через Chrome
+    <h1 style="text-align: center; color: #212529;">Озвучивание текста</h1>
+
+    <textarea id="textToSpeak" placeholder="Введите текст здесь..."></textarea>
+
+    <div id="fileControls">
+        <input type="text" id="fileName" placeholder="Название файла" style="flex: 1;">
+        <button onclick="saveText()" style="flex: 1;">💾 Сохранить</button>
+        <select id="savedFiles" style="flex: 1;"></select>
+        <div style="display: flex; gap: 15px;">
+            <button onclick="loadText()" style="flex: 1;">📥 Загрузить</button>
+            <button onclick="deleteText()" style="flex: 1;">🗑️ Удалить</button>
         </div>
     </div>
 
+    <div class="button-container">
+        <button onclick="startSpeaking()" style="flex: 1;">🔊 Озвучить</button>
+        <button onclick="stopSpeaking()" disabled style="flex: 1;">⏹️ Остановить</button>
+    </div>
+
+    <div id="status"></div>
+
     <script>
         let synthesisQueue = [];
+        let initialQueueLength = 0;
         let isSpeaking = false;
         const storageKey = 'textToSpeechStorage';
 
-        // Проверка голосов
         function checkVoices() {
             const voices = speechSynthesis.getVoices();
-            const hasRU = voices.some(v => v.lang.includes('ru'));
-            const status = document.getElementById('voiceStatus');
-            
-            if (!hasRU) {
-                status.textContent = '⚠️ Установите русский голос в настройках Chrome';
-                status.style.display = 'block';
-            } else {
-                status.style.display = 'none';
-            }
+            const ruVoice = voices.find(v => v.lang.includes('ru'));
+            return !!ruVoice;
         }
 
-        // Разбиение текста
         function splitText(text, chunkSize = 2500) {
             const sentences = text.match(/[^.!?]+[.!?]*/g) || [];
             let chunks = [];
@@ -179,79 +150,93 @@
             return chunks;
         }
 
-        // Сохранение
         function saveText() {
             const name = document.getElementById('fileName').value.trim();
             const text = document.getElementById('textToSpeak').value;
             
-            if (!name) return alert('Введите название файла');
+            if (!name) {
+                alert('Введите название файла');
+                return;
+            }
             
             const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
             saved[name] = text;
             localStorage.setItem(storageKey, JSON.stringify(saved));
             
+            updateSavedFiles();
             alert('Текст сохранён!');
             document.getElementById('fileName').value = '';
         }
 
-        // Загрузка
         function loadText() {
-            const select = document.getElementById('savedFiles');
-            const name = select.value;
+            const name = document.getElementById('savedFiles').value;
             const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
             
-            if (!name) return alert('Выберите файл');
+            if (!name) {
+                alert('Выберите файл');
+                return;
+            }
             
             document.getElementById('textToSpeak').value = saved[name] || '';
             alert('Текст загружен!');
         }
 
-        // Удаление
         function deleteText() {
             const name = document.getElementById('savedFiles').value;
             const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
             
-            if (!name) return alert('Выберите файл');
+            if (!name) {
+                alert('Выберите файл');
+                return;
+            }
             
             delete saved[name];
             localStorage.setItem(storageKey, JSON.stringify(saved));
+            updateSavedFiles();
             alert('Файл удалён!');
         }
 
-        // Обновление списка файлов
         function updateSavedFiles() {
-            const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
-            const options = Object.keys(saved).map(name => 
-                `<option value="${name}">${name}</option>`
-            ).join('');
+            const select = document.getElementById('savedFiles');
+            select.innerHTML = '';
             
-            document.getElementById('savedFiles').innerHTML = options || '<option>Нет файлов</option>';
+            const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+            Object.keys(saved).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
         }
 
-        // Воспроизведение
         function startSpeaking() {
             const text = document.getElementById('textToSpeak').value.trim();
             
-            if (!text) return alert('Введите текст');
-            if (!speechSynthesis) return alert('Ваш браузер не поддерживает озвучивание');
-            checkVoices();
+            if (!text) {
+                alert('Введите текст');
+                return;
+            }
             
-            if (!speechSynthesis.getVoices().some(v => v.lang.includes('ru'))) {
-                return alert('Нет русского голоса. Настройте Chrome');
+            if (!speechSynthesis) {
+                alert('Ваш браузер не поддерживает озвучивание');
+                return;
+            }
+
+            if (!checkVoices()) {
+                alert('Установите русский голос в Chrome: chrome://settings/content/speech');
+                return;
             }
 
             synthesisQueue = splitText(text);
-            const initialLength = synthesisQueue.length;
+            initialQueueLength = synthesisQueue.length;
             
             isSpeaking = true;
-            document.querySelector('[onclick="stopSpeaking()"]').disabled = false;
+            document.querySelector('[onclick="stopSpeaking"]').disabled = false;
             speechSynthesis.cancel();
             
-            updateProgress();
             speakNext();
         }
 
-        // Проигрывание очереди
         function speakNext() {
             if (synthesisQueue.length === 0) {
                 stopSpeaking();
@@ -263,7 +248,6 @@
             utterance.lang = 'ru-RU';
             
             utterance.onend = () => {
-                updateProgress();
                 speakNext();
             };
             
@@ -275,28 +259,20 @@
             speechSynthesis.speak(utterance);
         }
 
-        // Обновление прогресса
-        function updateProgress() {
-            const progress = document.getElementById('progress');
-            const percent = ((synthesisQueue.length / initialLength) * 100).toFixed(0);
-            
-            progress.textContent = `Осталось: ${synthesisQueue.length} частей (${100 - percent}% завершено)`;
-        }
-
-        // Остановка
         function stopSpeaking() {
             speechSynthesis.cancel();
             synthesisQueue = [];
             isSpeaking = false;
-            document.querySelector('[onclick="stopSpeaking()"]').disabled = true;
-            document.getElementById('progress').textContent = '';
+            document.querySelector('[onclick="stopSpeaking"]').disabled = true;
+            document.getElementById('status').textContent = '';
         }
 
-        // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             updateSavedFiles();
-            checkVoices();
-            window.speechSynthesis.onvoiceschanged = checkVoices;
+            window.speechSynthesis.onvoiceschanged = () => {
+                checkVoices();
+                updateSavedFiles();
+            };
         });
     </script>
 </body>
