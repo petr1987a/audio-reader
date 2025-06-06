@@ -34,7 +34,6 @@
         .button-container {
             margin: 20px 0;
             display: flex;
-            flex-wrap: wrap;
             gap: 15px;
         }
 
@@ -47,17 +46,11 @@
             font-size: 18px;
             cursor: pointer;
             transition: all 0.3s;
-            min-width: 150px;
         }
 
         button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        button:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
         }
 
         #fileControls {
@@ -85,10 +78,15 @@
             max-width: 300px;
         }
 
-        #status {
+        #progress {
             margin: 20px 0;
             font-size: 16px;
+            color: #28a745;
+        }
+
+        #status {
             color: #dc3545;
+            margin-top: 10px;
         }
 
         @media (max-width: 600px) {
@@ -100,7 +98,7 @@
     </style>
 </head>
 <body>
-    <h1 style="text-align: center; color: #212529;">Озвучивание текста</h1>
+    <h1>Озвучивание текста</h1>
 
     <textarea id="textToSpeak" placeholder="Введите текст здесь..."></textarea>
 
@@ -115,41 +113,48 @@
     </div>
 
     <div class="button-container">
-        <button onclick="startSpeaking()" style="flex: 1;">🔊 Озвучить</button>
-        <button onclick="stopSpeaking()" disabled style="flex: 1;">⏹️ Остановить</button>
+        <button onclick="startSpeaking()">🔊 Озвучить</button>
+        <button onclick="stopSpeaking()" disabled>⏹️ Остановить</button>
     </div>
 
+    <div id="progress"></div>
     <div id="status"></div>
 
     <script>
         let synthesisQueue = [];
-        let initialQueueLength = 0;
-        let isSpeaking = false;
+        let currentChunk = 0;
+        let totalChunks = 0;
         const storageKey = 'textToSpeechStorage';
 
+        // Разбиение текста на части
+        function splitText(text, chunkSize = 3000) {
+            const regex = /([^\n]*)\n?/g; // Разделяем по переводу строки
+            let match;
+            const chunks = [];
+            
+            while ((match = regex.exec(text)) !== null) {
+                let line = match[1];
+                
+                while (line.length > chunkSize) {
+                    const splitIndex = line.lastIndexOf(' ', chunkSize);
+                    chunks.push(line.slice(0, splitIndex));
+                    line = line.slice(splitIndex + 1);
+                }
+                
+                chunks.push(line);
+            }
+            
+            return chunks;
+        }
+
+        // Проверка голосов
         function checkVoices() {
             const voices = speechSynthesis.getVoices();
             const ruVoice = voices.find(v => v.lang.includes('ru'));
             return !!ruVoice;
         }
 
-        function splitText(text, chunkSize = 2500) {
-            const sentences = text.match(/[^.!?]+[.!?]*/g) || [];
-            let chunks = [];
-            let currentChunk = '';
-            
-            sentences.forEach(sentence => {
-                if (currentChunk.length + sentence.length > chunkSize) {
-                    chunks.push(currentChunk.trim());
-                    currentChunk = sentence;
-                } else {
-                    currentChunk += ' ' + sentence;
-                }
-            });
-            chunks.push(currentChunk.trim());
-            return chunks;
-        }
-
+        // Сохранение
         function saveText() {
             const name = document.getElementById('fileName').value.trim();
             const text = document.getElementById('textToSpeak').value;
@@ -168,6 +173,7 @@
             document.getElementById('fileName').value = '';
         }
 
+        // Загрузка
         function loadText() {
             const name = document.getElementById('savedFiles').value;
             const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
@@ -181,6 +187,7 @@
             alert('Текст загружен!');
         }
 
+        // Удаление
         function deleteText() {
             const name = document.getElementById('savedFiles').value;
             const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
@@ -196,6 +203,7 @@
             alert('Файл удалён!');
         }
 
+        // Обновление списка файлов
         function updateSavedFiles() {
             const select = document.getElementById('savedFiles');
             select.innerHTML = '';
@@ -209,6 +217,7 @@
             });
         }
 
+        // Воспроизведение
         function startSpeaking() {
             const text = document.getElementById('textToSpeak').value.trim();
             
@@ -216,7 +225,11 @@
                 alert('Введите текст');
                 return;
             }
-            
+
+            if (text.length > 100000) {
+                if (!confirm('Текст превышает 100 000 символов. Это может занять много времени. Продолжить?')) return;
+            }
+
             if (!speechSynthesis) {
                 alert('Ваш браузер не поддерживает озвучивание');
                 return;
@@ -228,26 +241,27 @@
             }
 
             synthesisQueue = splitText(text);
-            initialQueueLength = synthesisQueue.length;
+            totalChunks = synthesisQueue.length;
+            currentChunk = 0;
             
-            isSpeaking = true;
             document.querySelector('[onclick="stopSpeaking"]').disabled = false;
             speechSynthesis.cancel();
-            
             speakNext();
         }
 
+        // Проигрывание очереди
         function speakNext() {
-            if (synthesisQueue.length === 0) {
+            if (currentChunk >= totalChunks) {
                 stopSpeaking();
                 return;
             }
             
-            const chunk = synthesisQueue.shift();
+            const chunk = synthesisQueue[currentChunk++];
             const utterance = new SpeechSynthesisUtterance(chunk);
             utterance.lang = 'ru-RU';
             
             utterance.onend = () => {
+                updateProgress();
                 speakNext();
             };
             
@@ -259,14 +273,23 @@
             speechSynthesis.speak(utterance);
         }
 
+        // Остановка
         function stopSpeaking() {
             speechSynthesis.cancel();
             synthesisQueue = [];
-            isSpeaking = false;
+            currentChunk = 0;
             document.querySelector('[onclick="stopSpeaking"]').disabled = true;
-            document.getElementById('status').textContent = '';
+            document.getElementById('progress').textContent = '';
         }
 
+        // Обновление прогресса
+        function updateProgress() {
+            const percent = ((currentChunk / totalChunks) * 100).toFixed(0);
+            document.getElementById('progress').textContent = 
+                `Прогресс: ${percent}% (${currentChunk}/${totalChunks} частей)`;
+        }
+
+        // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             updateSavedFiles();
             window.speechSynthesis.onvoiceschanged = () => {
