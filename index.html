@@ -3,45 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Злой Светофорчик</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Озвучивание текста</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f4f4f9;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background: white;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 5px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #cccccc;
+        }
+        #progress {
+            margin: 15px 0;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+    </style>
 </head>
-<body class="dark-theme">
+<body>
     <div class="container">
-        <h1 id="mainPageTitle"></h1>
-
-        <!-- Светофор -->
-        <div id="trafficLightContainer" class="traffic-light-display">
-            <span class="light red-light" id="lightRed"></span>
-            <span class="light yellow-light" id="lightYellow"></span>
-            <span class="light green-light" id="lightGreen"></span>
+        <h2>Озвучивание текста</h2>
+        <textarea id="textToSpeak" placeholder="Введите текст здесь..."></textarea>
+        <div id="controls">
+            <button onclick="startSpeaking()" id="speakButton">Озвучить</button>
+            <button onclick="stopSpeaking()" id="stopButton" disabled>Остановить</button>
         </div>
-        <div id="trafficLightComment">Светофор ждёт ваших творений... ✨</div>
-
-        <!-- Текстовое поле -->
-        <textarea id="inputText" placeholder="Ваш текст здесь..."></textarea>
-        <div class="button-container">
-    <button id="countButton" data-dark="ПОЕХАЛИ🚀" data-light="Начать"></button>
-    <button id="clearButton" data-dark="В ТОПКУ🔥" data-light="Очистить"></button>
-    <button id="saveButton" data-dark="В АРХИВ🗄️" data-light="Сохранить"></button>
-</div>
-        <ul id="savedPoemsList"></ul>
-        <div id="result">Здесь будет результат...</div>
-
-        <!-- Лингвистический Комбайн -->
-        <div id="dictionaryHelper">
-            <h2>Лингвистический Комбайн 🔬</h2>
-            <input type="text" id="searchWordInput" placeholder="Введите слово для анализа...">
-            <div class="search-buttons-container">
-                <button class="search-btn" data-search-type="synonyms" title="Найти похожие по значению слова">Синонимы</button>
-                <button class="search-btn" data-search-type="rhymes" title="Найти слова, созвучные в конце">Рифмы</button>
-                <button class="search-btn" data-search-type="meaning" title="Узнать толкование и значение слова">Значение</button>
-                <button class="search-btn" data-search-type="antonyms" title="Найти противоположные по значению слова">Антонимы</button>
-               </div>
-        </div>
-        <footer> Сделано с ❤️ для поэтов Лены и Светы! </footer>
+        <div id="progress"></div>
+        <div id="voiceStatus"></div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        let synthesisQueue = [];
+        let currentUtterance;
+        let isSpeaking = false;
+        let voicesAvailable = false;
+
+        // Разбиение текста на части
+        function splitText(text, chunkSize = 2000) {
+            const sentences = text.match(/[^.!?]+[.!?]*/g) || [];
+            const chunks = [];
+            let currentChunk = '';
+            
+            sentences.forEach(sentence => {
+                if (currentChunk.length + sentence.length > chunkSize) {
+                    chunks.push(currentChunk.trim());
+                    currentChunk = sentence;
+                } else {
+                    currentChunk += ' ' + sentence;
+                }
+            });
+            chunks.push(currentChunk.trim());
+            return chunks;
+        }
+
+        // Обновление списка голосов
+        function checkVoices() {
+            const voices = speechSynthesis.getVoices();
+            const ruVoice = voices.find(v => v.lang.includes('ru'));
+            voicesAvailable = !!ruVoice;
+            document.getElementById('voiceStatus').textContent = 
+                voicesAvailable ? '' : '⚠️ Установите русский язык в настройках Android';
+        }
+
+        // Обработка очереди воспроизведения
+        function speakNext() {
+            if (synthesisQueue.length === 0) {
+                isSpeaking = false;
+                document.getElementById('stopButton').disabled = true;
+                return;
+            }
+            
+            const chunk = synthesisQueue.shift();
+            currentUtterance = new SpeechSynthesisUtterance(chunk);
+            currentUtterance.lang = 'ru-RU';
+            
+            currentUtterance.onend = () => {
+                updateProgress();
+                speakNext();
+            };
+            
+            currentUtterance.onerror = (e) => {
+                console.error('Ошибка воспроизведения:', e);
+                synthesisQueue = [];
+                updateProgress();
+            };
+            
+            speechSynthesis.speak(currentUtterance);
+        }
+
+        // Обновление индикатора прогресса
+        function updateProgress() {
+            const progress = document.getElementById('progress');
+            const percent = ((synthesisQueue.length === 0) 
+                ? 100 
+                : (1 - synthesisQueue.length / initialQueueLength) * 100).toFixed(0);
+            
+            progress.textContent = `Прогресс: ${percent}% (${synthesisQueue.length} частей осталось)`;
+        }
+
+        // Начало воспроизведения
+        function startSpeaking() {
+            const text = document.getElementById('textToSpeak').value.trim();
+            if (!text) {
+                alert('Введите текст для озвучивания');
+                return;
+            }
+            
+            if (!('speechSynthesis' in window)) {
+                return alert('Ваш браузер не поддерживает озвучивание');
+            }
+
+            // Проверка доступности голосов
+            checkVoices();
+            if (!voicesAvailable) {
+                return alert('Установите русский язык в настройках Android. Инструкция: \n1. Настройки → Язык и вход \n2. Включите синтез речи \n3. Добавьте русский язык');
+            }
+
+            synthesisQueue = splitText(text);
+            initialQueueLength = synthesisQueue.length;
+            
+            isSpeaking = true;
+            document.getElementById('stopButton').disabled = false;
+            speechSynthesis.cancel();
+            
+            updateProgress();
+            speakNext();
+        }
+
+        // Остановка воспроизведения
+        function stopSpeaking() {
+            speechSynthesis.cancel();
+            synthesisQueue = [];
+            isSpeaking = false;
+            document.getElementById('stopButton').disabled = true;
+            document.getElementById('progress').textContent = '';
+        }
+
+        // Автоматическое обновление списка голосов
+        window.speechSynthesis.onvoiceschanged = checkVoices;
+        checkVoices(); // Инициализация при загрузке
+    </script>
 </body>
 </html>
