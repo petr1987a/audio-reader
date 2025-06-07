@@ -4,31 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Озвучивание текста</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Poppins', sans-serif;
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
-            background: #f8f9fa;
+            background: #F4F4F4;
             color: #212529;
         }
 
         textarea {
             width: 100%;
-            height: 200px;
+            height: 150px;
             margin: 15px 0;
             padding: 15px;
-            border: 2px solid #ced4da;
-            border-radius: 8px;
-            font-size: 18px;
+            border: 1.5px solid #ced4da;
+            border-radius: 12px;
+            font-size: 16px;
             transition: all 0.3s;
         }
 
         textarea:focus {
-            border-color: #0d6efd;
+            border-color: #20C997;
             outline: none;
-            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+            box-shadow: 0 0 10px rgba(32, 201, 151, 0.4);
         }
 
         .button-container {
@@ -39,18 +40,20 @@
         }
 
         button {
-            padding: 16px 32px;
-            background: linear-gradient(135deg, #0d6efd, #6610f2);
+            padding: 14px 20px;
+            background: #007BFF;
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 18px;
+            border-radius: 50px;
+            font-size: 16px;
             cursor: pointer;
             transition: all 0.3s;
-            min-width: 150px;
+            width: 100%;
+            max-width: 200px;
         }
 
         button:hover {
+            background: #0056b3;
             transform: translateY(-2px);
             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
         }
@@ -61,145 +64,92 @@
         }
 
         #fileControls {
-            margin: 30px 0;
+            margin: 20px 0;
             display: flex;
             flex-wrap: wrap;
             gap: 15px;
         }
 
-        #fileName {
+        #fileName, #savedFiles {
             padding: 12px 15px;
-            border: 2px solid #ced4da;
-            border-radius: 8px;
-            font-size: 16px;
+            border: 1.5px solid #ced4da;
+            border-radius: 12px;
+            font-size: 14px;
             width: 100%;
-            max-width: 300px;
-        }
-
-        #savedFiles {
-            padding: 8px 12px;
-            border: 2px solid #ced4da;
-            border-radius: 8px;
-            font-size: 16px;
-            width: 100%;
-            max-width: 300px;
+            max-width: 250px;
         }
 
         #status {
             margin: 20px 0;
-            font-size: 16px;
+            font-size: 14px;
             color: #dc3545;
+        }
+
+        h1 {
+            text-align: center;
+            color: #007BFF;
         }
 
         @media (max-width: 600px) {
             button {
-                min-width: 100%;
-                margin: 10px 0;
+                width: 100%;
             }
         }
     </style>
 </head>
 <body>
-    <h1 style="text-align: center; color: #212529;">Озвучивание текста</h1>
+    <h1>Озвучивание текста</h1>
 
     <textarea id="textToSpeak" placeholder="Введите текст здесь..."></textarea>
 
     <div id="fileControls">
-        <input type="text" id="fileName" placeholder="Название файла" style="flex: 1;">
-        <button onclick="saveText()" style="flex: 1;">💾 </button>
-        <select id="savedFiles" style="flex: 1;"></select>
-        <div style="display: flex; gap: 15px;">
-            <button onclick="loadText()" style="flex: 1;">📥 </button>
-            <button onclick="deleteText()" style="flex: 1;">🗑️ </button>
+        <input type="text" id="fileName" placeholder="Название файла">
+        <button onclick="saveText()">💾 Сохранить</button>
+        <select id="savedFiles"></select>
+        <div style="display: flex; gap: 15px; width: 100%;">
+            <button onclick="loadText()">📥 Загрузить</button>
+            <button onclick="deleteText()">🗑️ Удалить</button>
         </div>
     </div>
 
     <div class="button-container">
-        <button onclick="startSpeaking()" style="flex: 1;">🔊 </button>
-        <button id="stopSpeakingButton" onclick="stopSpeaking()" disabled style="flex: 1;">⏹️ </button>
+        <button onclick="startSpeaking()">🔊 Озвучить</button>
+        <button id="stopSpeakingButton" onclick="stopSpeaking()" disabled>⏹️ Остановить</button>
     </div>
 
     <div id="status"></div>
 
     <script>
         let synthesisQueue = [];
-        let initialQueueLength = 0;
         let isSpeaking = false;
         const storageKey = 'textToSpeechStorage';
 
         function checkVoices() {
             const voices = speechSynthesis.getVoices();
-            const ruVoice = voices.find(v => v.lang.includes('ru'));
-            return !!ruVoice;
-        }
-
-        function splitText(text, chunkSize = 2500) {
-            const sentences = text.match(/[^.!?]+[.!?]*/g) || [];
-            let chunks = [];
-            let currentChunk = '';
-            
-            sentences.forEach(sentence => {
-                if (currentChunk.length + sentence.length > chunkSize) {
-                    chunks.push(currentChunk.trim());
-                    currentChunk = sentence;
-                } else {
-                    currentChunk += ' ' + sentence;
-                }
-            });
-            chunks.push(currentChunk.trim());
-            return chunks;
+            return voices.some(v => v.lang.includes('ru'));
         }
 
         function saveText() {
             const name = document.getElementById('fileName').value.trim();
             const text = document.getElementById('textToSpeak').value;
-            
+
             if (!name) {
                 alert('Введите название файла');
                 return;
             }
-            
+
             const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
             saved[name] = text;
             localStorage.setItem(storageKey, JSON.stringify(saved));
-            
+
             updateSavedFiles();
             alert('Текст сохранён!');
-            document.getElementById('fileName').value = '';
-        }
-
-        function loadText() {
-            const name = document.getElementById('savedFiles').value;
-            const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
-            
-            if (!name) {
-                alert('Выберите файл');
-                return;
-            }
-            
-            document.getElementById('textToSpeak').value = saved[name] || '';
-            alert('Текст загружен!');
-        }
-
-        function deleteText() {
-            const name = document.getElementById('savedFiles').value;
-            const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
-            
-            if (!name) {
-                alert('Выберите файл');
-                return;
-            }
-            
-            delete saved[name];
-            localStorage.setItem(storageKey, JSON.stringify(saved));
-            updateSavedFiles();
-            alert('Файл удалён!');
         }
 
         function updateSavedFiles() {
             const select = document.getElementById('savedFiles');
             select.innerHTML = '';
-            
+
             const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
             Object.keys(saved).forEach(name => {
                 const option = document.createElement('option');
@@ -211,69 +161,45 @@
 
         function startSpeaking() {
             const text = document.getElementById('textToSpeak').value.trim();
-            
+
             if (!text) {
                 alert('Введите текст');
                 return;
             }
-            
-            if (!speechSynthesis) {
+
+            if (!speechSynthesis || !checkVoices()) {
                 alert('Ваш браузер не поддерживает озвучивание');
                 return;
             }
 
-            if (!checkVoices()) {
-                alert('Установите русский голос в Chrome: chrome://settings/content/speech');
-                return;
-            }
+            synthesisQueue = text.split('.').map(sentence => sentence.trim()).filter(sentence => sentence);
 
-            synthesisQueue = splitText(text);
-            initialQueueLength = synthesisQueue.length;
-            
-            isSpeaking = true;
             document.getElementById('stopSpeakingButton').disabled = false;
-            speechSynthesis.cancel();
-            
             speakNext();
         }
 
         function speakNext() {
-            if (synthesisQueue.length === 0) {
+            if (!synthesisQueue.length) {
                 stopSpeaking();
                 return;
             }
-            
-            const chunk = synthesisQueue.shift();
-            const utterance = new SpeechSynthesisUtterance(chunk);
+
+            const utterance = new SpeechSynthesisUtterance(synthesisQueue.shift());
             utterance.lang = 'ru-RU';
-            
-            utterance.onend = () => {
-                speakNext();
-            };
-            
-            utterance.onerror = (e) => {
-                alert('Ошибка воспроизведения');
-                stopSpeaking();
-            };
-            
+
+            utterance.onend = speakNext;
+            utterance.onerror = stopSpeaking;
+
             speechSynthesis.speak(utterance);
         }
 
         function stopSpeaking() {
             speechSynthesis.cancel();
             synthesisQueue = [];
-            isSpeaking = false;
             document.getElementById('stopSpeakingButton').disabled = true;
-            document.getElementById('status').textContent = '';
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            updateSavedFiles();
-            window.speechSynthesis.onvoiceschanged = () => {
-                checkVoices();
-                updateSavedFiles();
-            };
-        });
+        document.addEventListener('DOMContentLoaded', updateSavedFiles);
     </script>
 </body>
 </html>
