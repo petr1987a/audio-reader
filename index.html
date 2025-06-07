@@ -106,17 +106,17 @@
 
     <div id="fileControls">
         <input type="text" id="fileName" placeholder="Название файла" style="flex: 1;">
-        <button onclick="saveText()" style="flex: 1;">💾</button>
+        <button onclick="saveText()" style="flex: 1;">💾 </button>
         <select id="savedFiles" style="flex: 1;"></select>
         <div style="display: flex; gap: 15px;">
             <button onclick="loadText()" style="flex: 1;">📥 </button>
-            <button onclick="deleteText()" style="flex: 1;">🗑️</button>
+            <button onclick="deleteText()" style="flex: 1;">🗑️ </button>
         </div>
     </div>
 
     <div class="button-container">
-        <button onclick="startSpeaking()" style="flex: 1;">🔊</button>
-        <button onclick="stopSpeaking()" disabled style="flex: 1;">⏹️</button>
+        <button onclick="startSpeaking()" style="flex: 1;">🔊 </button>
+        <button id="stopSpeakingButton" onclick="stopSpeaking()" disabled style="flex: 1;">⏹️ </button>
     </div>
 
     <div id="status"></div>
@@ -231,7 +231,7 @@
             initialQueueLength = synthesisQueue.length;
             
             isSpeaking = true;
-            document.querySelector('[onclick="stopSpeaking"]').disabled = false;
+            document.getElementById('stopSpeakingButton').disabled = false;
             speechSynthesis.cancel();
             
             speakNext();
@@ -263,7 +263,7 @@
             speechSynthesis.cancel();
             synthesisQueue = [];
             isSpeaking = false;
-            document.querySelector('[onclick="stopSpeaking"]').disabled = true;
+            document.getElementById('stopSpeakingButton').disabled = true;
             document.getElementById('status').textContent = '';
         }
 
