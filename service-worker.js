@@ -1,10 +1,10 @@
 const CACHE_NAME = 'audio-reader-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/audio-reader/',
+  '/audio-reader/index.html',
+  '/audio-reader/manifest.json',
+  '/audio-reader/icon-192.png',
+  '/audio-reader/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
