@@ -159,6 +159,27 @@
     }
 }
 
+        function deleteText() {
+    const select = document.getElementById('savedFiles');
+    const name = select.value;
+    if (!name) {
+        alert('Выберите сохранённый файл для удаления');
+        return;
+    }
+    if (!confirm(`Удалить "${name}"? Это действие нельзя отменить!`)) {
+        return;
+    }
+    const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+    delete saved[name];
+    localStorage.setItem(storageKey, JSON.stringify(saved));
+    updateSavedFiles();
+    // Если удалённый файл был загружен в textarea, очищаем поле
+    if (document.getElementById('textToSpeak').value === saved[name]) {
+        document.getElementById('textToSpeak').value = '';
+    }
+    alert('Файл удалён!');
+}
+
         function updateSavedFiles() {
             const select = document.getElementById('savedFiles');
             select.innerHTML = '';
