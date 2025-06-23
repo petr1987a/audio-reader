@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Озвучивание текста</title>
+    <!-- PWA manifest и иконка -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007BFF">
+    <link rel="icon" href="icon-192.png" sizes="192x192">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
@@ -146,40 +150,6 @@
             alert('Текст сохранён!');
         }
 
-        function loadText() {
-    const select = document.getElementById('savedFiles');
-    const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
-    const name = select.value;
-    if (name && saved[name] !== undefined) {
-        document.getElementById('textToSpeak').value = saved[name];
-        // Можно добавить уведомление:
-        // alert('Текст загружен!');
-    } else {
-        alert('Выберите сохранённый файл');
-    }
-}
-
-        function deleteText() {
-    const select = document.getElementById('savedFiles');
-    const name = select.value;
-    if (!name) {
-        alert('Выберите сохранённый файл для удаления');
-        return;
-    }
-    if (!confirm(`Удалить "${name}"? Это действие нельзя отменить!`)) {
-        return;
-    }
-    const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
-    delete saved[name];
-    localStorage.setItem(storageKey, JSON.stringify(saved));
-    updateSavedFiles();
-    // Если удалённый файл был загружен в textarea, очищаем поле
-    if (document.getElementById('textToSpeak').value === saved[name]) {
-        document.getElementById('textToSpeak').value = '';
-    }
-    alert('Файл удалён!');
-}
-
         function updateSavedFiles() {
             const select = document.getElementById('savedFiles');
             select.innerHTML = '';
@@ -191,6 +161,38 @@
                 option.textContent = name;
                 select.appendChild(option);
             });
+        }
+
+        function loadText() {
+            const select = document.getElementById('savedFiles');
+            const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+            const name = select.value;
+            if (name && saved[name] !== undefined) {
+                document.getElementById('textToSpeak').value = saved[name];
+            } else {
+                alert('Выберите сохранённый файл');
+            }
+        }
+
+        function deleteText() {
+            const select = document.getElementById('savedFiles');
+            const name = select.value;
+            if (!name) {
+                alert('Выберите сохранённый файл для удаления');
+                return;
+            }
+            if (!confirm(`Удалить "${name}"? Это действие нельзя отменить!`)) {
+                return;
+            }
+            const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+            // Очищаем textarea, если был загружен этот файл
+            if (document.getElementById('textToSpeak').value === saved[name]) {
+                document.getElementById('textToSpeak').value = '';
+            }
+            delete saved[name];
+            localStorage.setItem(storageKey, JSON.stringify(saved));
+            updateSavedFiles();
+            alert('Файл удалён!');
         }
 
         function startSpeaking() {
@@ -234,6 +236,15 @@
         }
 
         document.addEventListener('DOMContentLoaded', updateSavedFiles);
+
+        // PWA: регистрация service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(() => console.log('Service Worker зарегистрирован'))
+                    .catch(err => console.error('Service Worker не удалось зарегистрировать:', err));
+            });
+        }
     </script>
 </body>
 </html>
