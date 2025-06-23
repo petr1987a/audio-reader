@@ -146,6 +146,19 @@
             alert('Текст сохранён!');
         }
 
+        function loadText() {
+    const select = document.getElementById('savedFiles');
+    const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+    const name = select.value;
+    if (name && saved[name] !== undefined) {
+        document.getElementById('textToSpeak').value = saved[name];
+        // Можно добавить уведомление:
+        // alert('Текст загружен!');
+    } else {
+        alert('Выберите сохранённый файл');
+    }
+}
+
         function updateSavedFiles() {
             const select = document.getElementById('savedFiles');
             select.innerHTML = '';
