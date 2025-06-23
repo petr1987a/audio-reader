@@ -1,4 +1,4 @@
-const CACHE_NAME = 'audio-reader-cache-v1';
+ const CACHE_NAME = 'audio-reader-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',
